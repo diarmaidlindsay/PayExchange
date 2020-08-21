@@ -1,5 +1,6 @@
 package jp.ne.paypay.exchange.data.source
 
+import android.content.Context
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import jp.ne.paypay.exchange.BuildConfig
@@ -9,7 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
-class CurrencyLayerRepository(override val coroutineContext: CoroutineContext) :
+class CurrencyLayerRepository(override val coroutineContext: CoroutineContext, context: Context) :
     CurrencyLayerDataSource, CoroutineScope {
     override fun getCurrencyList(callback: CurrencyLayerDataSource.GetCurrencyListCallback) {
         launch {

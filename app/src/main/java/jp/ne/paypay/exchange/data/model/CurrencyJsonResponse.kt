@@ -12,5 +12,5 @@ data class CurrencyJsonResponse(
     @field:Json(name = "privacy")
     val privacy: String = "0",
     @field:Json(name = "currencies")
-    val currencies: MutableList<Currency> = mutableListOf()
+    val currencies: Map<String, String> = mutableMapOf()
 )

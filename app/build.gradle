@@ -31,6 +31,17 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+
+        debug {
+            versionNameSuffix "-debug"
+            debuggable true
+        }
+
+        localdata {
+            versionNameSuffix "-localdata"
+            debuggable true
+            signingConfig signingConfigs.debug
+        }
     }
 }
 
