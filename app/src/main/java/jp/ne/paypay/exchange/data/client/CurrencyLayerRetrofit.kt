@@ -1,7 +1,7 @@
 package jp.ne.paypay.exchange.data.client
 
 import com.squareup.moshi.Moshi
-import jp.ne.paypay.exchange.data.Urls
+import jp.ne.paypay.exchange.utils.Urls
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

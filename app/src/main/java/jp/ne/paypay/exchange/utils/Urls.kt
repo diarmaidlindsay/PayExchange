@@ -1,4 +1,4 @@
-package jp.ne.paypay.exchange.data
+package jp.ne.paypay.exchange.utils
 
 object Urls {
     const val CURRENCY_LAYER_BASE_URL = "http://api.currencylayer.com/"

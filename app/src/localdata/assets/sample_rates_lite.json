@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "terms": "https://currencylayer.com/terms",
+  "privacy": "https://currencylayer.com/privacy",
+  "timestamp": 1597941486,
+  "source": "USD",
+  "quotes": {
+    "USDEUR": 0.843502,
+    "USDGBP": 0.75785,
+    "USDJPY": 105.811499,
+    "USDUSD": 1
+  }
+}

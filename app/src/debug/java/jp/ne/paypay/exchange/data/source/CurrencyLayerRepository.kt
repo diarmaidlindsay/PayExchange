@@ -25,4 +25,18 @@ class CurrencyLayerRepository(override val coroutineContext: CoroutineContext, c
                 })
         }
     }
+
+    override fun getLatestCurrencyRates(callback: CurrencyLayerDataSource.GetCurrencyRatesCallback) {
+        launch {
+            CurrencyLayerRetrofit.retrofit.create(CurrencyLayerService::class.java)
+                .getCurrencyRates(BuildConfig.CURRENCY_LAYER_API_ACCESS_KEY)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ response ->
+                    callback.onCurrencyRatesLoadedSuccess(response)
+                }, { exception ->
+                    callback.onCurrencyRatesLoadedFail(exception.message)
+                })
+        }
+    }
 }

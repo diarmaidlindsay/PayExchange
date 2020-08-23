@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Exchange</string>
+    <string name="amount">Amount:</string>
+    <string name="base_currency">Base Currency:</string>
+    <string name="exchange_rates">Exchange Rates:</string>
+    <string name="current_amount_hint">1.0</string>
 </resources>
