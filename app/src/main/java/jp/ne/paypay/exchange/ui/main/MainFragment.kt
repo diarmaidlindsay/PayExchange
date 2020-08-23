@@ -117,7 +117,7 @@ class MainFragment : CoroutineScope, Fragment() {
                 CurrencyRateGridItem(
                     it.key.takeLast(3),
                     getFlag(it.key.takeLast(3), context),
-                    it.value.times(viewModel.currencyAmount.value ?: 1.0).toString()
+                    String.format("%.9f", it.value.times(viewModel.currencyAmount.value ?: 1.0))
                 )
             }
 
