@@ -9,10 +9,10 @@ import jp.ne.paypay.exchange.data.model.CurrencyRatesResponse
 import jp.ne.paypay.exchange.data.source.CurrencyLayerDataSource
 import jp.ne.paypay.exchange.data.source.CurrencyLayerRepository
 import jp.ne.paypay.exchange.utils.Constants
-import jp.ne.paypay.exchange.utils.ExchangeSharedPreferences
-import jp.ne.paypay.exchange.utils.ISharedPreferencesHelper
-import jp.ne.paypay.exchange.utils.SharedPreferencesHelper
 import jp.ne.paypay.exchange.utils.annotation.OpenForTesting
+import jp.ne.paypay.exchange.utils.helper.ExchangeSharedPreferences
+import jp.ne.paypay.exchange.utils.helper.ISharedPreferencesHelper
+import jp.ne.paypay.exchange.utils.helper.SharedPreferencesHelper
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream

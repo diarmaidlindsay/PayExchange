@@ -1,7 +1,13 @@
 package jp.ne.paypay.exchange.data
 
-object CurrencyLookupTable {
+import android.content.Context
+import jp.ne.paypay.exchange.data.model.CurrencyRateGridItem
+import jp.ne.paypay.exchange.utils.helper.AssetsHelper
+import jp.ne.paypay.exchange.utils.helper.IAssetsHelper
+
+object CurrencyCalculations {
     var exchangeRates: MutableMap<String, Double> = mutableMapOf()
+    var assetsHelper: IAssetsHelper = AssetsHelper
 
     fun populateTable(quotes: Map<String, Double>) {
         //Base currencies without "USD" prefix
@@ -29,4 +35,16 @@ object CurrencyLookupTable {
             }
         }
     }
+
+    fun generateCurrencyRateGridItems(baseCurrency: String, currencyRates: Map<String, Double>, currencyAmount: Double, context: Context?): List<CurrencyRateGridItem> =
+        //find quotes which match the base currency then take the RHS of the currency combination, ie, JPYUSD -> USD
+        currencyRates.filter { it.key.take(3) == baseCurrency }
+            .toSortedMap()
+            .map {
+                CurrencyRateGridItem(
+                    it.key.takeLast(3),
+                    assetsHelper.getFlag(it.key.takeLast(3), context),
+                    String.format("%.9f", it.value.times(currencyAmount))
+                )
+            }
 }

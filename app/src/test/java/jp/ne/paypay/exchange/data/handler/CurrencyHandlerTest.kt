@@ -5,7 +5,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import jp.ne.paypay.exchange.data.source.CurrencyLayerRepository
-import jp.ne.paypay.exchange.utils.ExchangeSharedPreferences
+import jp.ne.paypay.exchange.utils.helper.ExchangeSharedPreferences
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito

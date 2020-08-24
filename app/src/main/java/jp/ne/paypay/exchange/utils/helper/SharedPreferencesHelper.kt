@@ -1,4 +1,4 @@
-package jp.ne.paypay.exchange.utils
+package jp.ne.paypay.exchange.utils.helper
 
 import android.content.Context
 import android.content.SharedPreferences

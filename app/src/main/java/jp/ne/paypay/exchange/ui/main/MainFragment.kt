@@ -1,7 +1,6 @@
 package jp.ne.paypay.exchange.ui.main
 
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,23 +11,23 @@ import android.widget.AdapterView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import jp.ne.paypay.exchange.R
-import jp.ne.paypay.exchange.data.CurrencyLookupTable
+import jp.ne.paypay.exchange.data.CurrencyCalculations
+import jp.ne.paypay.exchange.data.CurrencyCalculations.generateCurrencyRateGridItems
 import jp.ne.paypay.exchange.data.handler.CurrencyHandler
 import jp.ne.paypay.exchange.data.model.CurrencyListItem
-import jp.ne.paypay.exchange.data.model.CurrencyRateGridItem
 import jp.ne.paypay.exchange.data.source.CurrencyLayerRepository
 import jp.ne.paypay.exchange.ui.adapter.CurrencyRateGridAdapter
 import jp.ne.paypay.exchange.ui.adapter.CurrencySpinnerAdapter
 import jp.ne.paypay.exchange.utils.Constants
-import jp.ne.paypay.exchange.utils.ExchangeSharedPreferences
-import jp.ne.paypay.exchange.utils.ISharedPreferencesHelper
-import jp.ne.paypay.exchange.utils.SharedPreferencesHelper
+import jp.ne.paypay.exchange.utils.helper.AssetsHelper.getFlag
+import jp.ne.paypay.exchange.utils.helper.ExchangeSharedPreferences
+import jp.ne.paypay.exchange.utils.helper.ISharedPreferencesHelper
+import jp.ne.paypay.exchange.utils.helper.SharedPreferencesHelper
 import kotlinx.android.synthetic.main.main_fragment.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import java.io.File
-import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 class MainFragment : CoroutineScope, Fragment() {
@@ -73,7 +72,7 @@ class MainFragment : CoroutineScope, Fragment() {
                 currencyHandler.retrieveLatestRates(context, viewModel.currencyRates, latestRatesFile, repository)
                 viewModel.currencyRates.observe(context, { currencyRates ->
                     //TODO : Convert to background task
-                    CurrencyLookupTable.populateTable(currencyRates)
+                    CurrencyCalculations.populateTable(currencyRates)
                     updateCurrencyGrid(context, viewModel.currentBaseCurrency)
                 })
             })
@@ -111,38 +110,11 @@ class MainFragment : CoroutineScope, Fragment() {
 
     private fun updateCurrencyGrid(context: Context, baseCurrency: String) {
         val currentPosition = currency_quotes.firstVisiblePosition
-        val currencyRateGridItems = generateCurrencyRateGridItems(baseCurrency, CurrencyLookupTable.exchangeRates, context)
+        val currencyRateGridItems =
+            generateCurrencyRateGridItems(baseCurrency, CurrencyCalculations.exchangeRates, viewModel.currencyAmount.value ?: 1.0, context)
         val gridAdapter =
             CurrencyRateGridAdapter(context, currencyRateGridItems)
         currency_quotes.adapter = gridAdapter
         currency_quotes.setSelection(currentPosition)
-    }
-
-    private fun generateCurrencyRateGridItems(baseCurrency: String, currencyRates: Map<String, Double>, context: Context): List<CurrencyRateGridItem> =
-        //find quotes which match the base currency then take the RHS of the currency combination, ie, JPYUSD -> USD
-        currencyRates.filter { it.key.take(3) == baseCurrency }
-            .toSortedMap()
-            .map {
-                CurrencyRateGridItem(
-                    it.key.takeLast(3),
-                    getFlag(it.key.takeLast(3), context),
-                    String.format("%.9f", it.value.times(viewModel.currencyAmount.value ?: 1.0))
-                )
-            }
-
-    private fun getFlag(currencyCode: String, context: Context): Drawable? {
-        return if (context.assets.list("flags")
-                ?.contains("${currencyCode.toLowerCase(Locale.ROOT)}.png") == true
-        ) {
-            Drawable.createFromStream(
-                context.assets.open("flags/${currencyCode.toLowerCase(Locale.ROOT)}.png"),
-                null
-            )
-        } else {
-            Drawable.createFromStream(
-                context.assets.open("flags/world.png"),
-                null
-            )
-        }
     }
 }
