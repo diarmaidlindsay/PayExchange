@@ -16,13 +16,18 @@ import jp.ne.paypay.exchange.data.CurrencyLookupTable
 import jp.ne.paypay.exchange.data.handler.CurrencyHandler
 import jp.ne.paypay.exchange.data.model.CurrencyListItem
 import jp.ne.paypay.exchange.data.model.CurrencyRateGridItem
+import jp.ne.paypay.exchange.data.source.CurrencyLayerRepository
 import jp.ne.paypay.exchange.ui.adapter.CurrencyRateGridAdapter
 import jp.ne.paypay.exchange.ui.adapter.CurrencySpinnerAdapter
+import jp.ne.paypay.exchange.utils.Constants
+import jp.ne.paypay.exchange.utils.ExchangeSharedPreferences
+import jp.ne.paypay.exchange.utils.ISharedPreferencesHelper
 import jp.ne.paypay.exchange.utils.SharedPreferencesHelper
 import kotlinx.android.synthetic.main.main_fragment.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import java.io.File
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
@@ -37,6 +42,7 @@ class MainFragment : CoroutineScope, Fragment() {
 
     private lateinit var viewModel: MainViewModel
     var currencyHandler = CurrencyHandler
+    var sharedPreferences: ISharedPreferencesHelper = SharedPreferencesHelper
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,38 +54,25 @@ class MainFragment : CoroutineScope, Fragment() {
     override fun onStart() {
         super.onStart()
         activity?.let { context ->
-            currency_list.onItemSelectedListener =
-                object : AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                        SharedPreferencesHelper.LAST_SELECTED_CURRENCY_IDX.putAsInt(context, position)
-                        viewModel.currentBaseCurrency = (parent?.getItemAtPosition(position) as CurrencyListItem).currencyCode
-                        updateCurrencyGrid(context, viewModel.currentBaseCurrency)
-                    }
-
-                    override fun onNothingSelected(parent: AdapterView<*>?) {
-                    }
-                }
-        }
-    }
-
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
-        activity?.let { context ->
-            currencyHandler.retrieveCurrencyList(context, coroutineContext, viewModel.currencyList)
+            val currencyListFile = File(context.filesDir, Constants.CURRENCY_LIST_FILE)
+            val repository = CurrencyLayerRepository(coroutineContext, context)
+            currencyHandler.retrieveCurrencyList(context, viewModel.currencyList, currencyListFile, repository)
             viewModel.currencyList.observe(context, { currencyList ->
                 val spinnerItems = currencyList.toSortedMap()
                     .map { CurrencyListItem(it.key, it.value, getFlag(it.key, context)) }
                 val spinnerAdapter = CurrencySpinnerAdapter(context, spinnerItems)
                 currency_list.adapter = spinnerAdapter
                 currency_list.setSelection(
-                    SharedPreferencesHelper.LAST_SELECTED_CURRENCY_IDX.getAsInt(
+                    sharedPreferences.getAsInt(
                         context,
-                        0
+                        0,
+                        ExchangeSharedPreferences.LAST_SELECTED_CURRENCY_IDX
                     )
                 )
-                currencyHandler.retrieveLatestRates(context, coroutineContext, viewModel.currencyRates)
+                val latestRatesFile = File(context.filesDir, Constants.LATEST_RATES_FILE)
+                currencyHandler.retrieveLatestRates(context, viewModel.currencyRates, latestRatesFile, repository)
                 viewModel.currencyRates.observe(context, { currencyRates ->
+                    //TODO : Convert to background task
                     CurrencyLookupTable.populateTable(currencyRates)
                     updateCurrencyGrid(context, viewModel.currentBaseCurrency)
                 })
@@ -97,7 +90,23 @@ class MainFragment : CoroutineScope, Fragment() {
             viewModel.currencyAmount.observe(context, {
                 updateCurrencyGrid(context, viewModel.currentBaseCurrency)
             })
+            currency_list.onItemSelectedListener =
+                object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        sharedPreferences.putAsInt(context, position, ExchangeSharedPreferences.LAST_SELECTED_CURRENCY_IDX)
+                        viewModel.currentBaseCurrency = (parent?.getItemAtPosition(position) as CurrencyListItem).currencyCode
+                        updateCurrencyGrid(context, viewModel.currentBaseCurrency)
+                    }
+
+                    override fun onNothingSelected(parent: AdapterView<*>?) {
+                    }
+                }
         }
+    }
+
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
     }
 
     private fun updateCurrencyGrid(context: Context, baseCurrency: String) {

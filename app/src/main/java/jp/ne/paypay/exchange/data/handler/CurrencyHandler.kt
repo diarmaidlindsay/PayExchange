@@ -9,17 +9,22 @@ import jp.ne.paypay.exchange.data.model.CurrencyRatesResponse
 import jp.ne.paypay.exchange.data.source.CurrencyLayerDataSource
 import jp.ne.paypay.exchange.data.source.CurrencyLayerRepository
 import jp.ne.paypay.exchange.utils.Constants
+import jp.ne.paypay.exchange.utils.ExchangeSharedPreferences
+import jp.ne.paypay.exchange.utils.ISharedPreferencesHelper
 import jp.ne.paypay.exchange.utils.SharedPreferencesHelper
+import jp.ne.paypay.exchange.utils.annotation.OpenForTesting
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.*
 import kotlin.collections.HashMap
-import kotlin.coroutines.CoroutineContext
 
 object CurrencyHandler {
-    fun retrieveCurrencyList(context: Context, coroutineContext: CoroutineContext, viewModelData: MutableLiveData<Map<String, String>>) {
-        val currencyListFile = File(context.filesDir, Constants.CURRENCY_LIST_FILE)
+    var ratesInterface: RatesInterface = RatesImpl
+    var currencyListInterface: CurrencyListInterface = CurrencyListImpl
+    var sharedPreferences: ISharedPreferencesHelper = SharedPreferencesHelper
+
+    fun retrieveCurrencyList(context: Context?, viewModelData: MutableLiveData<Map<String, String>>, currencyListFile: File, repository: CurrencyLayerRepository) {
         if (currencyListFile.exists()) {
             val currencyList: MutableMap<String, String> = HashMap()
             val properties = Properties()
@@ -29,40 +34,34 @@ object CurrencyHandler {
             }
             viewModelData.value = currencyList
         } else {
-            val repo = CurrencyLayerRepository(coroutineContext, context)
-            repo.getCurrencyList(object : CurrencyLayerDataSource.GetCurrencyListCallback {
-                override fun onCurrencyListLoaded(currencyJsonResponse: CurrencyListResponse) {
-                    viewModelData.value = currencyJsonResponse.currencies
-                    //store it locally
-                    currencyJsonResponse.currencies.toProperties().store(
-                        FileOutputStream(currencyListFile, false),
-                        null
-                    )
-                }
-
-                override fun onCurrencyListLoadFailed(message: String?) {
-                    Toast.makeText(context, "Currency List Load Failed : $message", Toast.LENGTH_SHORT).show()
-                    Log.e("CurrencyHandler", "Currency List Load Failed : $message")
-                }
-            })
+            currencyListInterface.downloadCurrencyList(context, currencyListFile, viewModelData, repository)
         }
     }
 
-    fun retrieveLatestRates(context: Context, coroutineContext: CoroutineContext, viewModelData: MutableLiveData<Map<String, Double>>) {
-        val latestRatesFile = File(context.filesDir, Constants.LATEST_RATES_FILE)
+    fun retrieveLatestRates(context: Context?, viewModelData: MutableLiveData<Map<String, Double>>, latestRatesFile: File, repository: CurrencyLayerRepository) {
         val unixTime = System.currentTimeMillis() / 1000L
-        val latestTimestamp = SharedPreferencesHelper.CURRENT_QUOTES_TIMESTAMP.getAsString(context, "0") ?: "0"
+        val latestTimestamp = sharedPreferences.getAsString(context, "0", ExchangeSharedPreferences.CURRENT_QUOTES_TIMESTAMP) ?: "0"
         if (latestRatesFile.exists() && unixTime - latestTimestamp.toLong() < Constants.RATES_REFRESH_TIME_SECS) {
-            useStoredRates(latestRatesFile, viewModelData)
+            ratesInterface.useStoredRates(latestRatesFile, viewModelData)
         } else {
-            downloadLatestRates(context, coroutineContext, viewModelData, latestRatesFile)
+            ratesInterface.downloadLatestRates(context, viewModelData, latestRatesFile, repository)
         }
     }
+}
 
-    private fun useStoredRates(
-        latestRatesFile: File,
-        viewModelData: MutableLiveData<Map<String, Double>>
-    ) {
+@OpenForTesting
+interface CurrencyListInterface {
+    fun downloadCurrencyList(context: Context?, currencyListFile: File, viewModelData: MutableLiveData<Map<String, String>>, repository: CurrencyLayerRepository)
+}
+
+@OpenForTesting
+interface RatesInterface {
+    fun downloadLatestRates(context: Context?, viewModelData: MutableLiveData<Map<String, Double>>, latestRatesFile: File, repository: CurrencyLayerRepository)
+    fun useStoredRates(latestRatesFile: File, viewModelData: MutableLiveData<Map<String, Double>>)
+}
+
+object RatesImpl : RatesInterface {
+    override fun useStoredRates(latestRatesFile: File, viewModelData: MutableLiveData<Map<String, Double>>) {
         //use existing stored rates/quotes
         val properties = Properties()
         properties.load(FileInputStream(latestRatesFile))
@@ -73,12 +72,11 @@ object CurrencyHandler {
         viewModelData.value = currentRates
     }
 
-    private fun downloadLatestRates(context: Context, coroutineContext: CoroutineContext, viewModelData: MutableLiveData<Map<String, Double>>, latestRatesFile: File) {
-        val repo = CurrencyLayerRepository(coroutineContext, context)
-        repo.getLatestCurrencyRates(object : CurrencyLayerDataSource.GetCurrencyRatesCallback {
+    override fun downloadLatestRates(context: Context?, viewModelData: MutableLiveData<Map<String, Double>>, latestRatesFile: File, repository: CurrencyLayerRepository) {
+        repository.getLatestCurrencyRates(object : CurrencyLayerDataSource.GetCurrencyRatesCallback {
             override fun onCurrencyRatesLoadedSuccess(currencyRatesResponse: CurrencyRatesResponse) {
                 val unixTime = System.currentTimeMillis() / 1000L
-                SharedPreferencesHelper.CURRENT_QUOTES_TIMESTAMP.putAsString(context, unixTime.toString())
+                //                SharedPreferencesHelper.putAsString(context, unixTime.toString(), ExchangeSharedPreferences.CURRENT_QUOTES_TIMESTAMP)
                 viewModelData.value = currencyRatesResponse.quotes
                 //store it locally
                 currencyRatesResponse.quotes.mapValues { it.value.toString() }.toProperties().store(
@@ -96,6 +94,26 @@ object CurrencyHandler {
                 } else {
                     Log.w("CurrencyHandler", "Could not fallback on stored rates - does not exist")
                 }
+            }
+        })
+    }
+}
+
+object CurrencyListImpl : CurrencyListInterface {
+    override fun downloadCurrencyList(context: Context?, currencyListFile: File, viewModelData: MutableLiveData<Map<String, String>>, repository: CurrencyLayerRepository) {
+        repository.getCurrencyList(object : CurrencyLayerDataSource.GetCurrencyListCallback {
+            override fun onCurrencyListLoaded(currencyJsonResponse: CurrencyListResponse) {
+                viewModelData.value = currencyJsonResponse.currencies
+                //store it locally
+                currencyJsonResponse.currencies.toProperties().store(
+                    FileOutputStream(currencyListFile, false),
+                    null
+                )
+            }
+
+            override fun onCurrencyListLoadFailed(message: String?) {
+                Toast.makeText(context, "Currency List Load Failed : $message", Toast.LENGTH_SHORT).show()
+                Log.e("CurrencyHandler", "Currency List Load Failed : $message")
             }
         })
     }

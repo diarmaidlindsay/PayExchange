@@ -6,10 +6,12 @@ import io.reactivex.schedulers.Schedulers
 import jp.ne.paypay.exchange.BuildConfig
 import jp.ne.paypay.exchange.data.client.CurrencyLayerRetrofit
 import jp.ne.paypay.exchange.data.service.CurrencyLayerService
+import jp.ne.paypay.exchange.utils.annotation.OpenForTesting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
+@OpenForTesting
 class CurrencyLayerRepository(override val coroutineContext: CoroutineContext, context: Context) :
     CurrencyLayerDataSource, CoroutineScope {
     override fun getCurrencyList(callback: CurrencyLayerDataSource.GetCurrencyListCallback) {

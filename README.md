@@ -2,14 +2,17 @@
 
 ## Intro
 
-Design an Android app to work with the limitations of a free account on CurrencyLayer and allow for currency conversions in all available currencies.  
+Design an Android app to work with the limitations of a free account on CurrencyLayer and allow for currency conversions in all available currencies.
+Demonstrates Unit Tests with mocking, and code is abstracted for future expansion and ease of maintenance.  
 
 ## Libraries used
 
 - Moshi (Json handling)
 - Retrofit (Communication with APIs - uses OkHttp under the hood)
-- ReactiveX (Observing LiveData and updating the UI accordingly)
+- ReactiveX (Observation of LiveData and updating of the UI accordingly)
 - JUnit
+- Mockito (Creating mocks for Testing)
+- Kotlin-AllOpen (Marking certain classes as "open" during tests to allow for mocking)
 
 ## Technical Details
 
